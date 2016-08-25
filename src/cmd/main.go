@@ -70,7 +70,8 @@ func StartEngine(id, ipaddr, port string) {
 
 	wsBackend := fmt.Sprintf("%s:%s", ipaddr, port)
 
-	http.HandleFunc("/api/kernels/", websocketHandler(fmt.Sprintf("%s:%s", ipaddr, port)))
+	http.HandleFunc("/api/kernels/", websocketHandler(wsBackend))
+	http.HandleFunc("/terminals/websocket/", websocketHandler(wsBackend))
 	http.HandleFunc("/", httpHandler(httpBackend))
 	http.ListenAndServe(":3000", nil)
 }
