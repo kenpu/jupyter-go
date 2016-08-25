@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strings"
 
 	"github.com/fsouza/go-dockerclient"
@@ -76,16 +77,24 @@ func StartEngine(id, ipaddr, port string) {
 	http.ListenAndServe(":3000", nil)
 }
 
-func StartDocker(client *docker.Client, image string) (id, ipaddr, port string, err error) {
+func StartDocker(client *docker.Client, image string, folder string) (id, ipaddr, port string, err error) {
+	var mnts []docker.Mount = []docker.Mount{
+		docker.Mount{
+			Source:      folder,
+			Destination: "/notebooks",
+		},
+	}
 	c, err := client.CreateContainer(docker.CreateContainerOptions{
-		Config: &docker.Config{Image: image},
+		Config: &docker.Config{Image: image, Mounts: mnts},
 	})
 	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 
 	err = client.StartContainer(c.ID, nil)
 	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 
@@ -109,9 +118,21 @@ func StartDocker(client *docker.Client, image string) (id, ipaddr, port string, 
 
 func main() {
 	// var image = "7da29f069ae6"
-	var image = "gibiansky/ihaskell:latest"
+	if len(os.Args) < 3 {
+		fmt.Println("Usage: <image> <folder>")
+		os.Exit(0)
+	}
+
+	var image string
+	var folder string
+
+	image = os.Args[1]
+	folder = os.Args[2]
+
+	fmt.Printf("Image: %s\nFolder: %v\n", image, folder)
+
 	client, _ := docker.NewClient("unix:///var/run/docker.sock")
-	id, ipaddr, port, err := StartDocker(client, image)
+	id, ipaddr, port, err := StartDocker(client, image, folder)
 	fmt.Println(id, ipaddr, port, err)
 	if err == nil {
 		StartEngine(id, ipaddr, port)
